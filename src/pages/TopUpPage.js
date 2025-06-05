@@ -4,6 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+// KOREKSI: Tambahkan import untuk Formik, Form, Field, ErrorMessage dari 'formik'
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+// KOREKSI: Tambahkan import untuk * as Yup dari 'yup'
+import * as Yup from 'yup';
 import { setBalance, setLogout } from '../store/authSlice';
 
 const nominalOptions = [10000, 20000, 50000, 100000, 250000, 500000];
@@ -61,7 +65,7 @@ const TopUpPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, navigate, dispatch, getConfig]); // KOREKSI: Hapus setBalance dan setLogout dari dependencies
+  }, [token, navigate, dispatch, getConfig]);
 
   useEffect(() => {
     fetchBalance();
