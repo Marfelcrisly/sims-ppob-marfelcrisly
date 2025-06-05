@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react'; // useCallback sudah diimpor
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { setBalance, setLogout } from '../store/authSlice'; // Import setLogout
+import { setBalance, setLogout } from '../store/authSlice';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -10,8 +10,6 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { token, balance } = useSelector((state) => state.auth);
-  // KOREKSI: Hapus showBalance dan setShowBalance jika tidak digunakan di halaman ini
-  // const [showBalance, setShowBalance] = useState(false);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -23,7 +21,7 @@ const PaymentPage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
+  const getConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -38,7 +36,7 @@ const PaymentPage = () => {
       }
       try {
         // Fetch Balance
-        const balanceResponse = await axios.get(`${API_BASE_URL}/balance`, getConfig()); // Menggunakan getConfig
+        const balanceResponse = await axios.get(`${API_BASE_URL}/balance`, getConfig());
         if (balanceResponse.data.status === 0) {
           dispatch(setBalance(balanceResponse.data.data.balance));
         } else {
@@ -47,7 +45,7 @@ const PaymentPage = () => {
         setLoadingBalance(false);
 
         // Fetch Services
-        const servicesResponse = await axios.get(`${API_BASE_URL}/services`, getConfig()); // Menggunakan getConfig
+        const servicesResponse = await axios.get(`${API_BASE_URL}/services`, getConfig());
         if (servicesResponse.data.status === 0) {
           setServices(servicesResponse.data.data);
           // Cek jika ada service_code di URL (dari HomePage)
@@ -70,13 +68,13 @@ const PaymentPage = () => {
         console.error('Error fetching data:', error);
         if (error.response && error.response.status === 401) {
           toast.error('Sesi Anda berakhir. Silakan login kembali.');
-          dispatch(setLogout()); // Tambahkan dispatch logout
+          dispatch(setLogout());
           navigate('/login');
         }
       }
     };
     fetchData();
-  }, [token, dispatch, navigate, location.search, getConfig, setLogout, setBalance]); // KOREKSI: Tambahkan getConfig sebagai dependency
+  }, [token, dispatch, navigate, location.search, getConfig]); // KOREKSI: setBalance dan setLogout dihapus dari dependency array karena mereka stabil
 
   const handlePayment = async () => {
     if (!selectedService) {
@@ -84,7 +82,7 @@ const PaymentPage = () => {
       return;
     }
 
-    if (balance === null || balance < selectedService.service_tariff) { // Pastikan balance tidak null
+    if (balance === null || balance < selectedService.service_tariff) {
       toast.error('Saldo tidak mencukupi untuk melakukan pembayaran ini.');
       return;
     }
@@ -101,8 +99,8 @@ const PaymentPage = () => {
 
       if (response.data.status === 0) {
         toast.success(response.data.message || `Pembayaran ${selectedService.service_name} berhasil!`);
-        dispatch(setBalance(response.data.data.balance)); // Update saldo terbaru di Redux
-        setSelectedService(null); // Reset pilihan layanan
+        dispatch(setBalance(response.data.data.balance));
+        setSelectedService(null);
       } else {
         toast.error(response.data.message || 'Pembayaran gagal. Silakan coba lagi.');
       }
@@ -136,7 +134,6 @@ const PaymentPage = () => {
         <h2 style={styles.balanceAmount}>
           {loadingBalance ? 'Memuat...' : (formatRupiah(balance))}
         </h2>
-        {/* Tidak ada toggle saldo di halaman ini sesuai mock up */}
       </div>
 
       <h3 style={styles.paymentTitle}>Pembayaran</h3>
@@ -155,7 +152,7 @@ const PaymentPage = () => {
                 src={service.service_icon}
                 alt={service.service_name}
                 style={styles.serviceIcon}
-                onError={(e) => { // Tambahkan onError handler untuk gambar
+                onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = 'https://placehold.co/40x40/cccccc/000000?text=Icon';
                 }}
@@ -175,7 +172,7 @@ const PaymentPage = () => {
 
       <button
         onClick={handlePayment}
-        disabled={isSubmitting || !selectedService || (balance !== null && balance < selectedService?.service_tariff)} // Periksa balance tidak null
+        disabled={isSubmitting || !selectedService || (balance !== null && balance < selectedService?.service_tariff)}
         style={
           isSubmitting || !selectedService || (balance !== null && balance < selectedService?.service_tariff)
             ? { ...styles.button, ...styles.buttonDisabled }
