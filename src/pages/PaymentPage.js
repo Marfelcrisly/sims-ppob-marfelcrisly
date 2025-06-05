@@ -1,9 +1,8 @@
-// src/pages/PaymentPage.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback sudah diimpor
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { setBalance } from '../store/authSlice'; // Untuk update saldo di Redux
+import { setBalance, setLogout } from '../store/authSlice'; // Import setLogout
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -11,23 +10,24 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { token, balance } = useSelector((state) => state.auth);
-  const [showBalance, setShowBalance] = useState(false);
+  // KOREKSI: Hapus showBalance dan setShowBalance jika tidak digunakan di halaman ini
+  // const [showBalance, setShowBalance] = useState(false);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
   const [selectedService, setSelectedService] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const location = useLocation(); // Hook untuk mendapatkan query params
+  const location = useLocation();
 
   // Base URL API
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = () => ({
+  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  });
+  }), [token]);
 
   // Fetch saldo dan layanan saat komponen dimuat
   useEffect(() => {
@@ -38,7 +38,7 @@ const PaymentPage = () => {
       }
       try {
         // Fetch Balance
-        const balanceResponse = await axios.get(`${API_BASE_URL}/balance`, getConfig());
+        const balanceResponse = await axios.get(`${API_BASE_URL}/balance`, getConfig()); // Menggunakan getConfig
         if (balanceResponse.data.status === 0) {
           dispatch(setBalance(balanceResponse.data.data.balance));
         } else {
@@ -47,7 +47,7 @@ const PaymentPage = () => {
         setLoadingBalance(false);
 
         // Fetch Services
-        const servicesResponse = await axios.get(`${API_BASE_URL}/services`, getConfig());
+        const servicesResponse = await axios.get(`${API_BASE_URL}/services`, getConfig()); // Menggunakan getConfig
         if (servicesResponse.data.status === 0) {
           setServices(servicesResponse.data.data);
           // Cek jika ada service_code di URL (dari HomePage)
@@ -70,13 +70,13 @@ const PaymentPage = () => {
         console.error('Error fetching data:', error);
         if (error.response && error.response.status === 401) {
           toast.error('Sesi Anda berakhir. Silakan login kembali.');
-          // dispatch(setLogout()); // Uncomment if you want to force logout on 401
-          // navigate('/login');
+          dispatch(setLogout()); // Tambahkan dispatch logout
+          navigate('/login');
         }
       }
     };
     fetchData();
-  }, [token, dispatch, navigate, location.search]); // Tambahkan location.search sebagai dependency
+  }, [token, dispatch, navigate, location.search, getConfig, setLogout, setBalance]); // KOREKSI: Tambahkan getConfig sebagai dependency
 
   const handlePayment = async () => {
     if (!selectedService) {
@@ -84,7 +84,7 @@ const PaymentPage = () => {
       return;
     }
 
-    if (balance < selectedService.service_tariff) {
+    if (balance === null || balance < selectedService.service_tariff) { // Pastikan balance tidak null
       toast.error('Saldo tidak mencukupi untuk melakukan pembayaran ini.');
       return;
     }
@@ -151,7 +151,15 @@ const PaymentPage = () => {
               style={selectedService?.service_code === service.service_code ? styles.serviceItemActive : styles.serviceItem}
               onClick={() => setSelectedService(service)}
             >
-              <img src={service.service_icon} alt={service.service_name} style={styles.serviceIcon} /> {/* KOREKSI DI SINI */}
+              <img
+                src={service.service_icon}
+                alt={service.service_name}
+                style={styles.serviceIcon}
+                onError={(e) => { // Tambahkan onError handler untuk gambar
+                  e.target.onerror = null;
+                  e.target.src = 'https://placehold.co/40x40/cccccc/000000?text=Icon';
+                }}
+              />
               <p style={styles.serviceName}>{service.service_name}</p>
             </div>
           ))}
@@ -167,9 +175,9 @@ const PaymentPage = () => {
 
       <button
         onClick={handlePayment}
-        disabled={isSubmitting || !selectedService || balance < selectedService?.service_tariff}
+        disabled={isSubmitting || !selectedService || (balance !== null && balance < selectedService?.service_tariff)} // Periksa balance tidak null
         style={
-          isSubmitting || !selectedService || balance < selectedService?.service_tariff
+          isSubmitting || !selectedService || (balance !== null && balance < selectedService?.service_tariff)
             ? { ...styles.button, ...styles.buttonDisabled }
             : styles.button
         }
@@ -287,9 +295,9 @@ const styles = {
     textAlign: 'center',
     padding: '10px',
     cursor: 'pointer',
-    border: '2px solid #dc3545', // Border merah untuk yang aktif
+    border: '2px solid #dc3545',
     borderRadius: '8px',
-    backgroundColor: '#ffebeb', // Latar belakang sedikit merah muda
+    backgroundColor: '#ffebeb',
     transition: 'background-color 0.2s, border-color 0.2s',
   },
   serviceIcon: {

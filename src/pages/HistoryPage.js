@@ -21,7 +21,7 @@ const HistoryPage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
+  const getConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -58,13 +58,13 @@ const HistoryPage = () => {
       setHasMore(false);
       if (err.response && err.response.status === 401) { // Unauthorized
           toast.error('Sesi Anda berakhir. Silakan login kembali.');
-          dispatch(setLogout()); // Tambahkan dispatch logout
+          dispatch(setLogout());
           navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  }, [token, offset, navigate, dispatch, getConfig, setLogout]); // Tambahkan semua dependencies
+  }, [token, offset, navigate, dispatch, getConfig]); // KOREKSI: Hapus setLogout dari dependencies
 
   useEffect(() => {
     fetchHistory();

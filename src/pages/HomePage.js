@@ -23,7 +23,7 @@ const HomePage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
+  const getConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -80,7 +80,7 @@ const HomePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, navigate, dispatch, getConfig, setLogout, setUser, setBalance]); // Tambahkan semua dependencies
+  }, [token, navigate, dispatch, getConfig]); // KOREKSI: Hapus setBalance, setLogout, setUser dari dependencies
 
   useEffect(() => {
     fetchData();
@@ -133,7 +133,7 @@ const HomePage = () => {
             src={user?.profile_image ? user.profile_image : DEFAULT_PROFILE_IMAGE}
             alt="Profile"
             style={styles.profileImage}
-            onError={(e) => { // Tambahkan onError handler untuk gambar
+            onError={(e) => {
               e.target.onerror = null;
               e.target.src = DEFAULT_PROFILE_IMAGE;
             }}
@@ -164,9 +164,8 @@ const HomePage = () => {
               src={service.service_icon}
               alt={service.service_name}
               style={styles.serviceIcon}
-              onError={(e) => { // Tambahkan onError handler untuk gambar
+              onError={(e) => {
                 e.target.onerror = null;
-                // Fallback ke placeholder atau icon default jika URL icon dari API rusak
                 e.target.src = 'https://placehold.co/40x40/cccccc/000000?text=Icon';
               }}
             />
@@ -183,9 +182,8 @@ const HomePage = () => {
             src={banner.banner_image}
             alt={banner.banner_name}
             style={styles.bannerImage}
-            onError={(e) => { // Tambahkan onError handler untuk gambar
+            onError={(e) => {
               e.target.onerror = null;
-              // Fallback ke placeholder jika URL banner dari API rusak
               e.target.src = 'https://placehold.co/280x150/cccccc/000000?text=Banner';
             }}
           />

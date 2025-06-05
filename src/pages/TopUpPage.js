@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import { setBalance, setLogout } from '../store/authSlice'; // Import setLogout
+import { setBalance, setLogout } from '../store/authSlice';
 
 const nominalOptions = [10000, 20000, 50000, 100000, 250000, 500000];
 
@@ -57,13 +55,13 @@ const TopUpPage = () => {
       console.error('Error fetching balance:', err);
       if (err.response && err.response.status === 401) {
         toast.error('Sesi Anda berakhir. Silakan login kembali.');
-        dispatch(setLogout()); // Tambahkan dispatch logout jika token tidak valid
+        dispatch(setLogout());
         navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  }, [token, navigate, dispatch, getConfig, setLogout, setBalance]); // Tambahkan semua dependencies
+  }, [token, navigate, dispatch, getConfig]); // KOREKSI: Hapus setBalance dan setLogout dari dependencies
 
   useEffect(() => {
     fetchBalance();
