@@ -1,4 +1,3 @@
-// src/store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const authSlice = createSlice({
@@ -25,11 +24,11 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload;
     },
-    setBalance: (state, action) => { // TAMBAHKAN REDUCER INI
+    setBalance: (state, action) => { // Tambahkan reducer ini
       state.balance = action.payload;
     },
   },
 });
 
-export const { setLogin, setLogout, setUser, setBalance } = authSlice.actions; // EKSPOR setBalance
+export const { setLogin, setLogout, setUser, setBalance } = authSlice.actions; // Ekspor setBalance
 export default authSlice.reducer;

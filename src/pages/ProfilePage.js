@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Import useCallback
 import { useSelector, useDispatch } from 'react-redux';
-import { setUser } from '../store/authSlice';
+import { setUser, setLogout } from '../store/authSlice'; // Import setLogout jika belum
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css'; // KOREKSI: 'ReactToastify.css'
+import 'react-toastify/dist/ReactToastify.css';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 
@@ -25,12 +25,13 @@ const ProfilePage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = (contentType = 'application/json') => ({
+  // Membungkus getConfig dalam useCallback untuk memoization
+  const getConfig = useCallback((contentType = 'application/json') => ({
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': contentType,
     },
-  });
+  }), [token]); // token adalah satu-satunya dependency yang berubah
 
   // Skema validasi untuk update profil
   const validationSchema = Yup.object().shape({
@@ -39,7 +40,8 @@ const ProfilePage = () => {
   });
 
   // Fungsi untuk mengambil data profil (jika belum ada di Redux atau perlu refresh)
-  const fetchProfile = async () => {
+  // Membungkus fetchProfile dalam useCallback
+  const fetchProfile = useCallback(async () => {
     if (!token) {
       navigate('/login');
       return;
@@ -49,9 +51,8 @@ const ProfilePage = () => {
       const response = await axios.get(`${API_BASE_URL}/profile`, getConfig());
       if (response.data.status === 0) {
         dispatch(setUser(response.data.data));
-        // KOREKSI: Jika profile_image sudah URL lengkap, gunakan langsung
         if (response.data.data.profile_image) {
-          setImagePreview(response.data.data.profile_image); // Gunakan URL langsung dari API
+          setImagePreview(response.data.data.profile_image);
         } else {
           setImagePreview(DEFAULT_PROFILE_IMAGE);
         }
@@ -63,21 +64,20 @@ const ProfilePage = () => {
       console.error('Error fetching profile:', err);
       if (err.response && err.response.status === 401) {
         toast.error('Sesi Anda berakhir. Silakan login kembali.');
-        // dispatch(setLogout()); // Uncomment if you want to force logout on 401
-        // navigate('/login');
+        dispatch(setLogout()); // Tambahkan dispatch logout jika token tidak valid
+        navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigate, dispatch, getConfig]); // Tambahkan semua dependencies
 
   useEffect(() => {
-    // Jika user data sudah ada dari HomePage, gunakan itu
-    if (user) {
+    // Jika user data sudah ada dari Redux, gunakan itu
+    if (user && user.email) { // Pastikan user tidak null dan punya email
       setLoading(false);
-      // KOREKSI: Jika profile_image sudah URL lengkap, gunakan langsung
       if (user.profile_image) {
-        setImagePreview(user.profile_image); // Gunakan URL langsung dari Redux user
+        setImagePreview(user.profile_image);
       } else {
         setImagePreview(DEFAULT_PROFILE_IMAGE);
       }
@@ -85,7 +85,7 @@ const ProfilePage = () => {
       // Jika belum ada, fetch dari API
       fetchProfile();
     }
-  }, [token, user, navigate]); // user ditambahkan sebagai dependency
+  }, [user, fetchProfile]); // user dan fetchProfile adalah dependencies
 
   // Handler untuk update data profil
   const handleUpdateProfile = async (values, { setSubmitting }) => {
@@ -123,7 +123,6 @@ const ProfilePage = () => {
       if (file.size > 100 * 1024) { // 100 KB dalam bytes
         toast.error('Ukuran gambar maksimum 100 KB.');
         setSelectedFile(null);
-        // KOREKSI: Set preview kembali ke gambar user saat ini atau default
         setImagePreview(user?.profile_image ? user.profile_image : DEFAULT_PROFILE_IMAGE);
         return;
       }
@@ -152,7 +151,6 @@ const ProfilePage = () => {
       if (response.data.status === 0) {
         toast.success(response.data.message || 'Gambar profil berhasil diunggah!');
         dispatch(setUser(response.data.data)); // Update user di Redux dengan URL gambar baru
-        // KOREKSI: Gunakan URL langsung dari API response
         setImagePreview(response.data.data.profile_image); // Set preview ke gambar baru dari API
         setSelectedFile(null); // Reset selected file
       } else {
@@ -196,13 +194,17 @@ const ProfilePage = () => {
       <div style={styles.profileSection}>
         <div style={styles.profileImageContainer}>
           <img
-            src={imagePreview || DEFAULT_PROFILE_IMAGE} // Gunakan imagePreview jika ada, fallback ke default
+            src={imagePreview || DEFAULT_PROFILE_IMAGE}
             alt="Profile"
             style={styles.profileImage}
+            onError={(e) => { // Tambahkan onError handler untuk gambar
+              e.target.onerror = null;
+              e.target.src = DEFAULT_PROFILE_IMAGE;
+            }}
           />
           <input
             type="file"
-            accept="image/png, image/jpeg" // Hanya izinkan PNG dan JPEG
+            accept="image/png, image/jpeg"
             onChange={handleFileChange}
             style={{ display: 'none' }}
             id="profileImageInput"
@@ -234,7 +236,7 @@ const ProfilePage = () => {
             }}
             validationSchema={validationSchema}
             onSubmit={handleUpdateProfile}
-            enableReinitialize={true} // Penting agar formik mengupdate initialValues saat user berubah
+            enableReinitialize={true}
           >
             {({ isSubmitting, resetForm }) => (
               <Form style={styles.editForm}>
@@ -259,8 +261,8 @@ const ProfilePage = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setIsEditing(false); // Keluar dari mode edit
-                      resetForm(); // Reset form ke nilai awal (profil user saat ini)
+                      setIsEditing(false);
+                      resetForm();
                     }}
                     style={styles.cancelButton}
                   >
@@ -279,7 +281,7 @@ const ProfilePage = () => {
         <div style={styles.navItem} onClick={() => navigate('/topup')}>Top Up</div>
         <div style={styles.navItem} onClick={() => navigate('/payment')}>Payment</div>
         <div style={styles.navItem} onClick={() => navigate('/history')}>History</div>
-        <div style={styles.navItem} onClick={() => navigate('/profile')}>Akun</div>
+        <div style={{...styles.navItem, color: '#dc3545'}} onClick={() => navigate('/profile')}>Akun</div>
       </div>
     </div>
   );
@@ -473,4 +475,3 @@ const styles = {
 };
 
 export default ProfilePage;
-
