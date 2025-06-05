@@ -1,4 +1,3 @@
-// src/pages/HomePage.js
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setLogout, setUser, setBalance } from '../store/authSlice';
@@ -24,11 +23,11 @@ const HomePage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = () => ({
+  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  });
+  }), [token]);
 
   // Fetch Profile, Balance, Services, Banners
   const fetchData = useCallback(async () => {
@@ -81,7 +80,7 @@ const HomePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, dispatch, navigate]);
+  }, [token, navigate, dispatch, getConfig, setLogout, setUser, setBalance]); // Tambahkan semua dependencies
 
   useEffect(() => {
     fetchData();
@@ -131,9 +130,13 @@ const HomePage = () => {
       <div style={styles.profileSection}>
         <div style={styles.profileImageContainer} onClick={() => navigate('/profile')}>
           <img
-            src={user?.profile_image ? user.profile_image : DEFAULT_PROFILE_IMAGE} // Ini sudah benar
+            src={user?.profile_image ? user.profile_image : DEFAULT_PROFILE_IMAGE}
             alt="Profile"
             style={styles.profileImage}
+            onError={(e) => { // Tambahkan onError handler untuk gambar
+              e.target.onerror = null;
+              e.target.src = DEFAULT_PROFILE_IMAGE;
+            }}
           />
           <p style={styles.welcomeText}>Selamat datang,</p>
           <p style={styles.userName}>{user?.first_name} {user?.last_name}</p>
@@ -157,7 +160,16 @@ const HomePage = () => {
             style={styles.serviceItem}
             onClick={() => navigate(`/payment?service_code=${service.service_code}&service_name=${service.service_name}&service_tariff=${service.service_tariff}`)}
           >
-            <img src={service.service_icon} alt={service.service_name} style={styles.serviceIcon} /> {/* KOREKSI DI SINI */}
+            <img
+              src={service.service_icon}
+              alt={service.service_name}
+              style={styles.serviceIcon}
+              onError={(e) => { // Tambahkan onError handler untuk gambar
+                e.target.onerror = null;
+                // Fallback ke placeholder atau icon default jika URL icon dari API rusak
+                e.target.src = 'https://placehold.co/40x40/cccccc/000000?text=Icon';
+              }}
+            />
             <p style={styles.serviceName}>{service.service_name}</p>
           </div>
         ))}
@@ -168,9 +180,14 @@ const HomePage = () => {
         {banners.map((banner) => (
           <img
             key={banner.banner_name}
-            src={banner.banner_image} // KOREKSI DI SINI
+            src={banner.banner_image}
             alt={banner.banner_name}
             style={styles.bannerImage}
+            onError={(e) => { // Tambahkan onError handler untuk gambar
+              e.target.onerror = null;
+              // Fallback ke placeholder jika URL banner dari API rusak
+              e.target.src = 'https://placehold.co/280x150/cccccc/000000?text=Banner';
+            }}
           />
         ))}
       </div>

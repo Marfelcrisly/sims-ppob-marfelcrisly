@@ -1,13 +1,14 @@
-// src/pages/HistoryPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { setLogout } from '../store/authSlice';
 
 const HistoryPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +21,11 @@ const HistoryPage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = () => ({
+  const getConfig = useCallback(() => ({ // Bungkus getConfig dalam useCallback
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  });
+  }), [token]);
 
   // Fungsi untuk mengambil riwayat transaksi
   const fetchHistory = useCallback(async () => {
@@ -57,15 +58,14 @@ const HistoryPage = () => {
       setHasMore(false);
       if (err.response && err.response.status === 401) { // Unauthorized
           toast.error('Sesi Anda berakhir. Silakan login kembali.');
-          // dispatch(setLogout()); // Uncomment if you want to force logout on 401
-          // navigate('/login');
+          dispatch(setLogout()); // Tambahkan dispatch logout
+          navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  }, [token, offset, navigate]); // Tambahkan offset sebagai dependency
+  }, [token, offset, navigate, dispatch, getConfig, setLogout]); // Tambahkan semua dependencies
 
-  // Panggil fetchHistory saat komponen dimuat atau offset berubah
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
@@ -114,11 +114,9 @@ const HistoryPage = () => {
       ) : (
         <div style={styles.transactionList}>
           {transactions.map((transaction, index) => (
-            // Untuk elemen terakhir, kita bisa menambahkan style inline secara kondisional
-            // atau menggunakan CSS eksternal jika ingin mempertahankan pseudo-selector
             <div key={index} style={{
               ...styles.transactionItem,
-              ...(index === transactions.length - 1 ? { borderBottom: 'none' } : {}) // KOREKSI: Terapkan style last-child secara inline
+              ...(index === transactions.length - 1 ? { borderBottom: 'none' } : {})
             }}>
               <div style={styles.transactionAmount}>
                 <span style={{ color: transaction.transaction_type === 'TOPUP' ? '#28a745' : '#dc3545' }}>
@@ -206,10 +204,6 @@ const styles = {
     justifyContent: 'space-between',
     padding: '15px 0',
     borderBottom: '1px solid #eee',
-    // KOREKSI: Hapus pseudo-selector yang tidak didukung di inline style
-    // '&:last-child': {
-    //   borderBottom: 'none',
-    // },
   },
   transactionAmount: {
     fontSize: '1.1em',

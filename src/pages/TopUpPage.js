@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { setBalance } from '../store/authSlice';
+import { setBalance, setLogout } from '../store/authSlice'; // Import setLogout
 
 const nominalOptions = [10000, 20000, 50000, 100000, 250000, 500000];
 
@@ -21,15 +21,15 @@ const TopUpPage = () => {
   const API_BASE_URL = 'https://take-home-test-api.nutech-integrasi.com';
 
   // Fungsi helper untuk konfigurasi header dengan token
-  const getConfig = () => ({
+  const getConfig = useCallback((contentType = 'application/json') => ({
     headers: {
       Authorization: `Bearer ${token}`,
+      'Content-Type': contentType,
     },
-  });
+  }), [token]);
 
   // Skema validasi Formik
   const validationSchema = Yup.object().shape({
-    // KOREKSI: Ubah nama field dari top_up_nominal menjadi top_up_amount
     top_up_amount: Yup.number()
       .required('Nominal Top Up wajib diisi')
       .min(10000, 'Minimum Top Up adalah Rp 10.000')
@@ -57,33 +57,33 @@ const TopUpPage = () => {
       console.error('Error fetching balance:', err);
       if (err.response && err.response.status === 401) {
         toast.error('Sesi Anda berakhir. Silakan login kembali.');
-        // navigate('/login'); // Uncomment if you want to force logout on 401
+        dispatch(setLogout()); // Tambahkan dispatch logout jika token tidak valid
+        navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  }, [token, dispatch, navigate]);
+  }, [token, navigate, dispatch, getConfig, setLogout, setBalance]); // Tambahkan semua dependencies
 
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
-    // KOREKSI: Kirim top_up_amount ke API
-    console.log('Nilai top_up_amount yang akan dikirim:', values.top_up_amount); // Diagnostik
+    console.log('Nilai top_up_amount yang akan dikirim:', values.top_up_amount);
     try {
       const response = await axios.post(
         `${API_BASE_URL}/topup`,
         {
-          top_up_amount: values.top_up_amount, // KOREKSI: Ubah nama parameter di payload
+          top_up_amount: values.top_up_amount,
         },
         getConfig()
       );
 
       if (response.data.status === 0) {
         toast.success(response.data.message || 'Top Up berhasil!');
-        dispatch(setBalance(response.data.data.balance)); // Update saldo di Redux
-        resetForm(); // Reset form setelah sukses
+        dispatch(setBalance(response.data.data.balance));
+        resetForm();
       } else {
         toast.error(response.data.message || 'Top Up gagal. Silakan coba lagi.');
       }
@@ -139,7 +139,7 @@ const TopUpPage = () => {
       <h3 style={styles.topUpTitle}>Silahkan masukkan Nominal Top Up</h3>
 
       <Formik
-        initialValues={{ top_up_amount: null }} // KOREKSI: Ubah nama field di initialValues
+        initialValues={{ top_up_amount: null }}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
@@ -150,7 +150,7 @@ const TopUpPage = () => {
                 <button
                   key={nominal}
                   type="button"
-                  onClick={() => setFieldValue('top_up_amount', nominal)} // KOREKSI: Ubah nama field
+                  onClick={() => setFieldValue('top_up_amount', nominal)}
                   style={
                     values.top_up_amount === nominal
                       ? { ...styles.nominalButton, ...styles.nominalButtonActive }
@@ -165,15 +165,15 @@ const TopUpPage = () => {
             <div style={styles.formGroup}>
               <Field
                 type="number"
-                name="top_up_amount" // KOREKSI: Ubah nama field
+                name="top_up_amount"
                 placeholder="Masukkan Nominal Lain"
                 style={styles.input}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFieldValue('top_up_amount', value === '' ? null : Number(value)); // KOREKSI: Ubah nama field
+                  setFieldValue('top_up_amount', value === '' ? null : Number(value));
                 }}
               />
-              <ErrorMessage name="top_up_amount" component="div" style={styles.error} /> {/* KOREKSI: Ubah nama field */}
+              <ErrorMessage name="top_up_amount" component="div" style={styles.error} />
             </div>
 
             <button
